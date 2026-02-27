@@ -1,13 +1,13 @@
 import { v4 as uuidv4 } from 'uuid';
 import { ITodoRepository } from '../interfaces/ITodoRepository';
-import { Todo, CreateTodoInput, UpdateTodoInput } from '../types/todo.types';
+import { Todo, CreateTodoDTO, UpdateTodoDTO } from '../types/todo.types';
 
 export class InMemoryTodoRepository implements ITodoRepository {
   private readonly store: Map<string, Todo> = new Map();
 
   async findAll(): Promise<Todo[]> {
     return Array.from(this.store.values()).sort(
-      (a, b) => a.createdAt.getTime() - b.createdAt.getTime()
+      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
     );
   }
 
@@ -15,14 +15,13 @@ export class InMemoryTodoRepository implements ITodoRepository {
     return this.store.get(id) ?? null;
   }
 
-  async create(input: CreateTodoInput): Promise<Todo> {
+  async create(dto: CreateTodoDTO): Promise<Todo> {
     const now = new Date();
     const todo: Todo = {
       id: uuidv4(),
-      title: input.title,
-      description: input.description,
-      completed: false,
-      status: input.status ?? 'pending',
+      title: dto.title,
+      description: dto.description,
+      status: dto.status ?? 'pending',
       createdAt: now,
       updatedAt: now,
     };
@@ -30,33 +29,27 @@ export class InMemoryTodoRepository implements ITodoRepository {
     return todo;
   }
 
-  async update(id: string, input: UpdateTodoInput): Promise<Todo | null> {
+  async update(id: string, dto: UpdateTodoDTO): Promise<Todo | null> {
     const existing = this.store.get(id);
     if (!existing) return null;
 
     const updated: Todo = {
       ...existing,
-      ...(input.title !== undefined && { title: input.title }),
-      ...(input.description !== undefined && { description: input.description }),
-      ...(input.completed !== undefined && { completed: input.completed }),
-      ...(input.status !== undefined && { status: input.status }),
+      ...(dto.title !== undefined && { title: dto.title }),
+      ...(dto.description !== undefined && { description: dto.description }),
+      ...(dto.status !== undefined && { status: dto.status }),
       updatedAt: new Date(),
     };
-
-    // If completed flag is set to true, sync status
-    if (input.completed === true && updated.status !== 'completed') {
-      updated.status = 'completed';
-    }
-    // If status is set to completed, sync completed flag
-    if (input.status === 'completed' && !updated.completed) {
-      updated.completed = true;
-    }
-
     this.store.set(id, updated);
     return updated;
   }
 
   async delete(id: string): Promise<boolean> {
     return this.store.delete(id);
+  }
+
+  /** Test helper: clear all data */
+  clear(): void {
+    this.store.clear();
   }
 }

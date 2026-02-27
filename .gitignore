@@ -1,31 +1,7 @@
-# Dependencies
 node_modules/
-
-# Build output
 dist/
-
-# Environment
+coverage/
 .env
 .env.local
-.env.*.local
-
-# Logs
-logs/
-*.log
-npm-debug.log*
-
-# Coverage
-coverage/
-
-# IDE
-.vscode/
-.idea/
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
-
-# OS
-.DS_Store
-Thumbs.db
+*.js.map
+*.d.ts

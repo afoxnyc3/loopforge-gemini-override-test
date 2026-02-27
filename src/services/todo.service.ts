@@ -1,5 +1,5 @@
 import { ITodoRepository } from '../interfaces/ITodoRepository';
-import { Todo, CreateTodoInput, UpdateTodoInput } from '../types/todo.types';
+import { Todo, CreateTodoDTO, UpdateTodoDTO } from '../types/todo.types';
 import { NotFoundError } from '../errors/AppError';
 
 export class TodoService {
@@ -12,27 +12,27 @@ export class TodoService {
   async getTodoById(id: string): Promise<Todo> {
     const todo = await this.repository.findById(id);
     if (!todo) {
-      throw new NotFoundError('Todo', id);
+      throw new NotFoundError('Todo');
     }
     return todo;
   }
 
-  async createTodo(input: CreateTodoInput): Promise<Todo> {
-    return this.repository.create(input);
+  async createTodo(dto: CreateTodoDTO): Promise<Todo> {
+    return this.repository.create(dto);
   }
 
-  async updateTodo(id: string, input: UpdateTodoInput): Promise<Todo> {
-    const updated = await this.repository.update(id, input);
-    if (!updated) {
-      throw new NotFoundError('Todo', id);
+  async updateTodo(id: string, dto: UpdateTodoDTO): Promise<Todo> {
+    const todo = await this.repository.update(id, dto);
+    if (!todo) {
+      throw new NotFoundError('Todo');
     }
-    return updated;
+    return todo;
   }
 
   async deleteTodo(id: string): Promise<void> {
     const deleted = await this.repository.delete(id);
     if (!deleted) {
-      throw new NotFoundError('Todo', id);
+      throw new NotFoundError('Todo');
     }
   }
 }

@@ -6,30 +6,25 @@ export class AppError extends Error {
     super(message);
     this.statusCode = statusCode;
     this.isOperational = isOperational;
-
-    // Restore prototype chain
     Object.setPrototypeOf(this, new.target.prototype);
     Error.captureStackTrace(this, this.constructor);
   }
 }
 
 export class NotFoundError extends AppError {
-  constructor(resource: string, id?: string) {
-    const message = id
-      ? `${resource} with id '${id}' not found`
-      : `${resource} not found`;
-    super(message, 404);
+  constructor(resource = 'Resource') {
+    super(`${resource} not found`, 404);
   }
 }
 
 export class ValidationError extends AppError {
-  constructor(message: string) {
+  constructor(message = 'Validation failed') {
     super(message, 400);
   }
 }
 
 export class ConflictError extends AppError {
-  constructor(message: string) {
+  constructor(message = 'Conflict') {
     super(message, 409);
   }
 }

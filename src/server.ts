@@ -7,10 +7,10 @@ const app = createApp();
 
 const server = app.listen(PORT, HOST, () => {
   console.log(`[server] Todo REST API running at http://${HOST}:${PORT}`);
-  console.log(`[server] Environment: ${process.env.NODE_ENV ?? 'development'}`);
+  console.log(`[server] Health check: http://${HOST}:${PORT}/health`);
+  console.log(`[server] Todos API:    http://${HOST}:${PORT}/api/todos`);
 });
 
-// Graceful shutdown
 process.on('SIGTERM', () => {
   console.log('[server] SIGTERM received — shutting down gracefully');
   server.close(() => {

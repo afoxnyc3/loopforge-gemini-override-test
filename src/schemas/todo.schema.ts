@@ -1,57 +1,44 @@
 import { z } from 'zod';
 
-export const TodoStatusSchema = z.enum(['pending', 'in_progress', 'completed']);
+const todoStatusSchema = z.enum(['pending', 'in_progress', 'completed']);
 
-export const CreateTodoSchema = z.object({
+export const createTodoSchema = z.object({
   title: z
-    .string({
-      required_error: 'Title is required',
-      invalid_type_error: 'Title must be a string',
-    })
+    .string({ required_error: 'Title is required' })
     .min(1, 'Title cannot be empty')
-    .max(200, 'Title cannot exceed 200 characters')
+    .max(200, 'Title must be 200 characters or fewer')
     .trim(),
   description: z
-    .string({
-      invalid_type_error: 'Description must be a string',
-    })
-    .max(1000, 'Description cannot exceed 1000 characters')
+    .string()
+    .max(1000, 'Description must be 1000 characters or fewer')
     .trim()
     .optional(),
-  status: TodoStatusSchema.optional().default('pending'),
+  status: todoStatusSchema.optional().default('pending'),
 });
 
-export const UpdateTodoSchema = z
+export const updateTodoSchema = z
   .object({
     title: z
-      .string({
-        invalid_type_error: 'Title must be a string',
-      })
+      .string()
       .min(1, 'Title cannot be empty')
-      .max(200, 'Title cannot exceed 200 characters')
+      .max(200, 'Title must be 200 characters or fewer')
       .trim()
       .optional(),
     description: z
-      .string({
-        invalid_type_error: 'Description must be a string',
-      })
-      .max(1000, 'Description cannot exceed 1000 characters')
+      .string()
+      .max(1000, 'Description must be 1000 characters or fewer')
       .trim()
       .optional(),
-    completed: z
-      .boolean({
-        invalid_type_error: 'Completed must be a boolean',
-      })
-      .optional(),
-    status: TodoStatusSchema.optional(),
+    status: todoStatusSchema.optional(),
   })
   .refine((data) => Object.keys(data).length > 0, {
     message: 'At least one field must be provided for update',
   });
 
-export const UuidParamSchema = z.object({
-  id: z.string().uuid('Invalid UUID format for id'),
+export const todoIdSchema = z.object({
+  id: z.string().uuid('Invalid todo ID format'),
 });
 
-export type CreateTodoDto = z.infer<typeof CreateTodoSchema>;
-export type UpdateTodoDto = z.infer<typeof UpdateTodoSchema>;
+export type CreateTodoInput = z.infer<typeof createTodoSchema>;
+export type UpdateTodoInput = z.infer<typeof updateTodoSchema>;
+export type TodoIdParam = z.infer<typeof todoIdSchema>;

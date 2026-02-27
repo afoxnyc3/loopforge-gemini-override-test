@@ -3,63 +3,44 @@ import { TodoController } from '../controllers/todo.controller';
 import { TodoService } from '../services/todo.service';
 import { InMemoryTodoRepository } from '../repositories/InMemoryTodoRepository';
 import { validate } from '../middleware/validate.middleware';
-import {
-  CreateTodoSchema,
-  UpdateTodoSchema,
-  UuidParamSchema,
-} from '../schemas/todo.schema';
+import { createTodoSchema, updateTodoSchema, todoIdSchema } from '../schemas/todo.schema';
 
 const router = Router();
 
-// Dependency injection — wire up the chain
+// Dependency injection wiring
 const repository = new InMemoryTodoRepository();
 const service = new TodoService(repository);
 const controller = new TodoController(service);
 
-/**
- * GET /api/todos
- * Retrieve all todos
- */
+// GET /api/todos
 router.get('/', controller.getAll);
 
-/**
- * GET /api/todos/:id
- * Retrieve a single todo by ID
- */
+// GET /api/todos/:id
 router.get(
   '/:id',
-  validate(UuidParamSchema, 'params'),
+  validate(todoIdSchema, 'params'),
   controller.getById
 );
 
-/**
- * POST /api/todos
- * Create a new todo
- */
+// POST /api/todos
 router.post(
   '/',
-  validate(CreateTodoSchema, 'body'),
+  validate(createTodoSchema, 'body'),
   controller.create
 );
 
-/**
- * PUT /api/todos/:id
- * Update an existing todo
- */
-router.put(
+// PATCH /api/todos/:id
+router.patch(
   '/:id',
-  validate(UuidParamSchema, 'params'),
-  validate(UpdateTodoSchema, 'body'),
+  validate(todoIdSchema, 'params'),
+  validate(updateTodoSchema, 'body'),
   controller.update
 );
 
-/**
- * DELETE /api/todos/:id
- * Delete a todo
- */
+// DELETE /api/todos/:id
 router.delete(
   '/:id',
-  validate(UuidParamSchema, 'params'),
+  validate(todoIdSchema, 'params'),
   controller.delete
 );
 

@@ -4,33 +4,26 @@ export interface Todo {
   id: string;
   title: string;
   description?: string;
-  completed: boolean;
   status: TodoStatus;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface CreateTodoInput {
+export interface CreateTodoDTO {
   title: string;
   description?: string;
   status?: TodoStatus;
 }
 
-export interface UpdateTodoInput {
+export interface UpdateTodoDTO {
   title?: string;
   description?: string;
-  completed?: boolean;
   status?: TodoStatus;
 }
 
-export interface ApiResponse<T = undefined> {
+export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
   message?: string;
-}
-
-export interface PaginatedResult<T> {
-  items: T[];
-  total: number;
 }

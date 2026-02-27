@@ -1,109 +1,89 @@
 # Todo REST API
 
-A production-quality CRUD REST API for managing todos, built with **Express.js** and **TypeScript**.
+A production-quality Express.js + TypeScript REST API for managing todos.
 
-## Features
+## Tech Stack
 
-- Full CRUD operations for todos
-- Input validation with [Zod](https://zod.dev)
-- Layered architecture: Routes → Controllers → Services → Repository
-- Repository interface abstraction (swap in-memory for a real DB without touching business logic)
-- Consistent JSON response envelope: `{ success, data?, error?, message? }`
-- Custom `AppError` hierarchy with proper HTTP status codes
-- UUID-based IDs
-- Integration test suite with Jest + Supertest
-- Graceful shutdown (SIGTERM / SIGINT)
+- **Runtime**: Node.js 20+
+- **Framework**: Express.js 4
+- **Language**: TypeScript 5
+- **Validation**: Zod
+- **Testing**: Jest + Supertest
+- **ID generation**: uuid v4
 
-## Quick Start
+## Architecture
+
+```
+src/
+├── types/          # TypeScript interfaces and DTOs
+├── interfaces/     # Repository contracts
+├── schemas/        # Zod validation schemas
+├── errors/         # Custom error classes
+├── repositories/   # Data access layer (in-memory)
+├── services/       # Business logic layer
+├── controllers/    # HTTP request handlers
+├── middleware/     # Validation & error handling
+├── routes/         # Express route definitions
+├── app.ts          # App factory
+└── server.ts       # Entry point
+```
+
+## Getting Started
 
 ```bash
 npm install
-npm run dev        # development with hot-reload
-npm run build      # compile TypeScript
-npm start          # run compiled output
-npm test           # run tests with coverage
+npm run dev      # Development with hot-reload
+npm run build    # Compile TypeScript
+npm start        # Run compiled output
+npm test         # Run test suite
+npm run test:coverage  # Run tests with coverage
 ```
 
 ## API Endpoints
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/api/todos` | List all todos |
-| `GET` | `/api/todos/:id` | Get a single todo by UUID |
-| `POST` | `/api/todos` | Create a new todo |
-| `PUT` | `/api/todos/:id` | Update an existing todo |
-| `DELETE` | `/api/todos/:id` | Delete a todo |
-| `GET` | `/health` | Health check |
+All responses follow the envelope: `{ success, data?, error?, message? }`
+
+| Method | Path             | Description        |
+|--------|------------------|--------------------|  
+| GET    | /api/todos       | List all todos     |
+| GET    | /api/todos/:id   | Get todo by ID     |
+| POST   | /api/todos       | Create a todo      |
+| PATCH  | /api/todos/:id   | Update a todo      |
+| DELETE | /api/todos/:id   | Delete a todo      |
+| GET    | /health          | Health check       |
 
 ## Request / Response Examples
 
-### Create a Todo
-```http
+### Create Todo
+```json
 POST /api/todos
-Content-Type: application/json
+{ "title": "Buy groceries", "description": "Milk, eggs", "status": "pending" }
 
-{ "title": "Buy groceries", "description": "Milk, eggs, bread", "status": "pending" }
+201 Created
+{ "success": true, "data": { "id": "uuid", "title": "Buy groceries", ... }, "message": "Todo created successfully" }
 ```
 
+### Update Todo
 ```json
-{
-  "success": true,
-  "data": {
-    "id": "550e8400-e29b-41d4-a716-446655440000",
-    "title": "Buy groceries",
-    "description": "Milk, eggs, bread",
-    "completed": false,
-    "status": "pending",
-    "createdAt": "2024-01-15T10:00:00.000Z",
-    "updatedAt": "2024-01-15T10:00:00.000Z"
-  },
-  "message": "Todo created successfully"
-}
+PATCH /api/todos/:id
+{ "status": "completed" }
+
+200 OK
+{ "success": true, "data": { ... }, "message": "Todo updated successfully" }
 ```
 
-### Validation Error
+### Error Response
 ```json
-{
-  "success": false,
-  "error": "Validation failed",
-  "message": "title: Title is required"
-}
+{ "success": false, "error": "Todo not found" }
 ```
 
-### Not Found
-```json
-{
-  "success": false,
-  "error": "Todo with id '...' not found"
-}
-```
+## Todo Schema
 
-## Project Structure
-
-```
-src/
-├── __tests__/          # Integration tests
-├── controllers/        # Request/response handling
-├── errors/             # Custom error classes
-├── interfaces/         # Repository interface
-├── middleware/         # Validation + error handling
-├── repositories/       # In-memory data store
-├── routes/             # Express routers
-├── schemas/            # Zod validation schemas
-├── services/           # Business logic
-├── types/              # TypeScript interfaces
-├── app.ts              # Express app factory
-└── server.ts           # HTTP server entry point
-```
-
-## Todo Model
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | `string` (UUID) | Unique identifier |
-| `title` | `string` (1–200 chars) | Required |
-| `description` | `string` (≤1000 chars) | Optional |
-| `completed` | `boolean` | Defaults to `false` |
-| `status` | `'pending' \| 'in_progress' \| 'completed'` | Defaults to `'pending'` |
-| `createdAt` | `Date` | Auto-set on creation |
-| `updatedAt` | `Date` | Auto-updated on change |
+| Field       | Type                                   | Required |
+|-------------|----------------------------------------|----------|
+| id          | UUID string                            | auto     |
+| title       | string (1–200 chars)                   | yes      |
+| description | string (max 1000 chars)                | no       |
+| status      | pending \| in_progress \| completed    | no (default: pending) |
+| createdAt   | ISO datetime                           | auto     |
+| updatedAt   | ISO datetime                           | auto     |

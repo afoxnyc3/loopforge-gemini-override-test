@@ -5,40 +5,34 @@ import { ApiResponse } from '../types/todo.types';
 export function errorHandler(
   err: Error,
   _req: Request,
-  res: Response,
+  res: Response<ApiResponse>,
   _next: NextFunction
 ): void {
-  // Operational errors we raised intentionally
   if (err instanceof AppError) {
-    const response: ApiResponse = {
+    res.status(err.statusCode).json({
       success: false,
       error: err.message,
-    };
-    res.status(err.statusCode).json(response);
+    });
     return;
   }
 
-  // Unknown / programmer errors — don't leak internals
+  // Unexpected / non-operational errors
   console.error('[Unhandled Error]', err);
-
-  const response: ApiResponse = {
+  res.status(500).json({
     success: false,
-    error: 'Internal server error',
-    message:
-      process.env.NODE_ENV === 'development' ? err.message : undefined,
-  };
-
-  res.status(500).json(response);
+    error: 'Internal Server Error',
+    message: 'An unexpected error occurred',
+  });
 }
 
 export function notFoundHandler(
-  req: Request,
-  res: Response,
+  _req: Request,
+  res: Response<ApiResponse>,
   _next: NextFunction
 ): void {
-  const response: ApiResponse = {
+  res.status(404).json({
     success: false,
-    error: `Route '${req.method} ${req.originalUrl}' not found`,
-  };
-  res.status(404).json(response);
+    error: 'Not Found',
+    message: 'The requested route does not exist',
+  });
 }

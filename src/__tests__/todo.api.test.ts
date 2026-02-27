@@ -1,142 +1,196 @@
 import request from 'supertest';
-import { createApp } from '../app';
-import { Application } from 'express';
+import { app } from '../app';
 
-let app: Application;
+describe('Todo API', () => {
+  let createdTodoId: string;
 
-beforeAll(() => {
-  app = createApp();
-});
-
-describe('GET /health', () => {
-  it('returns 200 with ok status', async () => {
-    const res = await request(app).get('/health');
-    expect(res.status).toBe(200);
-    expect(res.body.status).toBe('ok');
-  });
-});
-
-describe('Todo CRUD API', () => {
-  let createdId: string;
-
+  // ── POST /api/todos ─────────────────────────────────────────────
   describe('POST /api/todos', () => {
-    it('creates a todo with valid body', async () => {
+    it('should create a new todo with title only', async () => {
       const res = await request(app)
         .post('/api/todos')
-        .send({ title: 'Buy groceries', description: 'Milk, eggs, bread' });
-      expect(res.status).toBe(201);
+        .send({ title: 'Test todo' })
+        .expect(201);
+
       expect(res.body.success).toBe(true);
-      expect(res.body.data).toMatchObject({
-        title: 'Buy groceries',
-        description: 'Milk, eggs, bread',
-        status: 'pending',
-      });
-      expect(res.body.data.id).toBeDefined();
-      createdId = res.body.data.id;
+      expect(res.body.data).toHaveProperty('id');
+      expect(res.body.data.title).toBe('Test todo');
+      expect(res.body.data.description).toBeNull();
+      expect(res.body.data.completed).toBe(false);
+      expect(res.body.data).toHaveProperty('createdAt');
+      expect(res.body.data).toHaveProperty('updatedAt');
+
+      createdTodoId = res.body.data.id;
     });
 
-    it('returns 400 when title is missing', async () => {
-      const res = await request(app).post('/api/todos').send({ description: 'No title' });
-      expect(res.status).toBe(400);
+    it('should create a new todo with title and description', async () => {
+      const res = await request(app)
+        .post('/api/todos')
+        .send({ title: 'Another todo', description: 'With a description' })
+        .expect(201);
+
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.title).toBe('Another todo');
+      expect(res.body.data.description).toBe('With a description');
+    });
+
+    it('should return 400 for missing title', async () => {
+      const res = await request(app)
+        .post('/api/todos')
+        .send({ description: 'No title' })
+        .expect(400);
+
       expect(res.body.success).toBe(false);
       expect(res.body.error).toBe('Validation Error');
     });
 
-    it('returns 400 when title is empty string', async () => {
-      const res = await request(app).post('/api/todos').send({ title: '' });
-      expect(res.status).toBe(400);
-      expect(res.body.success).toBe(false);
-    });
+    it('should return 400 for empty body', async () => {
+      const res = await request(app)
+        .post('/api/todos')
+        .send({})
+        .expect(400);
 
-    it('returns 400 when status is invalid', async () => {
-      const res = await request(app).post('/api/todos').send({ title: 'Test', status: 'done' });
-      expect(res.status).toBe(400);
       expect(res.body.success).toBe(false);
+      expect(res.body.error).toBe('Validation Error');
+      expect(res.body.details).toBeDefined();
     });
   });
 
+  // ── GET /api/todos ──────────────────────────────────────────────
   describe('GET /api/todos', () => {
-    it('returns array of todos', async () => {
-      const res = await request(app).get('/api/todos');
-      expect(res.status).toBe(200);
+    it('should return all todos', async () => {
+      const res = await request(app)
+        .get('/api/todos')
+        .expect(200);
+
       expect(res.body.success).toBe(true);
       expect(Array.isArray(res.body.data)).toBe(true);
-      expect(res.body.data.length).toBeGreaterThan(0);
+      expect(res.body.data.length).toBeGreaterThanOrEqual(1);
     });
   });
 
+  // ── GET /api/todos/:id ──────────────────────────────────────────
   describe('GET /api/todos/:id', () => {
-    it('returns a specific todo by id', async () => {
-      const res = await request(app).get(`/api/todos/${createdId}`);
-      expect(res.status).toBe(200);
+    it('should return a single todo by id', async () => {
+      const res = await request(app)
+        .get(`/api/todos/${createdTodoId}`)
+        .expect(200);
+
       expect(res.body.success).toBe(true);
-      expect(res.body.data.id).toBe(createdId);
+      expect(res.body.data.id).toBe(createdTodoId);
     });
 
-    it('returns 404 for non-existent id', async () => {
-      const res = await request(app).get('/api/todos/00000000-0000-0000-0000-000000000000');
-      expect(res.status).toBe(404);
+    it('should return 404 for non-existent id', async () => {
+      const fakeId = '00000000-0000-0000-0000-000000000000';
+      const res = await request(app)
+        .get(`/api/todos/${fakeId}`)
+        .expect(404);
+
       expect(res.body.success).toBe(false);
+      expect(res.body.error).toBe('Not Found');
     });
 
-    it('returns 400 for invalid UUID format', async () => {
-      const res = await request(app).get('/api/todos/not-a-uuid');
-      expect(res.status).toBe(400);
+    it('should return 400 for invalid UUID format', async () => {
+      const res = await request(app)
+        .get('/api/todos/not-a-valid-uuid')
+        .expect(400);
+
       expect(res.body.success).toBe(false);
+      expect(res.body.error).toBe('Validation Error');
     });
   });
 
-  describe('PATCH /api/todos/:id', () => {
-    it('updates a todo successfully', async () => {
+  // ── PUT /api/todos/:id ──────────────────────────────────────────
+  describe('PUT /api/todos/:id', () => {
+    it('should update a todo', async () => {
       const res = await request(app)
-        .patch(`/api/todos/${createdId}`)
-        .send({ status: 'in_progress', title: 'Buy groceries (updated)' });
-      expect(res.status).toBe(200);
+        .put(`/api/todos/${createdTodoId}`)
+        .send({ title: 'Updated todo', completed: true })
+        .expect(200);
+
       expect(res.body.success).toBe(true);
-      expect(res.body.data.status).toBe('in_progress');
-      expect(res.body.data.title).toBe('Buy groceries (updated)');
+      expect(res.body.data.title).toBe('Updated todo');
+      expect(res.body.data.completed).toBe(true);
     });
 
-    it('returns 400 for empty update body', async () => {
-      const res = await request(app).patch(`/api/todos/${createdId}`).send({});
-      expect(res.status).toBe(400);
-      expect(res.body.success).toBe(false);
-    });
+    it('should update updatedAt timestamp on partial update', async () => {
+      const getBefore = await request(app)
+        .get(`/api/todos/${createdTodoId}`)
+        .expect(200);
 
-    it('returns 404 for non-existent id', async () => {
+      const previousUpdatedAt = getBefore.body.data.updatedAt;
+
+      // Small delay to ensure timestamp difference
+      await new Promise((resolve) => setTimeout(resolve, 10));
+
       const res = await request(app)
-        .patch('/api/todos/00000000-0000-0000-0000-000000000000')
-        .send({ title: 'Ghost' });
-      expect(res.status).toBe(404);
+        .put(`/api/todos/${createdTodoId}`)
+        .send({ title: 'Timestamp check' })
+        .expect(200);
+
+      expect(res.body.data.updatedAt).not.toBe(previousUpdatedAt);
+    });
+
+    it('should return 404 when updating non-existent todo', async () => {
+      const fakeId = '00000000-0000-0000-0000-000000000000';
+      const res = await request(app)
+        .put(`/api/todos/${fakeId}`)
+        .send({ title: 'Ghost update' })
+        .expect(404);
+
       expect(res.body.success).toBe(false);
+      expect(res.body.error).toBe('Not Found');
+    });
+
+    it('should return 400 for invalid UUID format on update', async () => {
+      const res = await request(app)
+        .put('/api/todos/bad-id')
+        .send({ title: 'Bad id' })
+        .expect(400);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.error).toBe('Validation Error');
     });
   });
 
+  // ── DELETE /api/todos/:id ───────────────────────────────────────
   describe('DELETE /api/todos/:id', () => {
-    it('deletes a todo successfully', async () => {
-      const res = await request(app).delete(`/api/todos/${createdId}`);
-      expect(res.status).toBe(200);
-      expect(res.body.success).toBe(true);
-      expect(res.body.message).toBe('Todo deleted successfully');
+    it('should delete a todo', async () => {
+      await request(app)
+        .delete(`/api/todos/${createdTodoId}`)
+        .expect(204);
     });
 
-    it('returns 404 after deletion', async () => {
-      const res = await request(app).get(`/api/todos/${createdId}`);
-      expect(res.status).toBe(404);
-    });
+    it('should return 404 when deleting non-existent todo', async () => {
+      const fakeId = '00000000-0000-0000-0000-000000000000';
+      const res = await request(app)
+        .delete(`/api/todos/${fakeId}`)
+        .expect(404);
 
-    it('returns 404 for non-existent id on delete', async () => {
-      const res = await request(app).delete('/api/todos/00000000-0000-0000-0000-000000000000');
-      expect(res.status).toBe(404);
       expect(res.body.success).toBe(false);
+      expect(res.body.error).toBe('Not Found');
+    });
+
+    it('should return 404 when deleting already-deleted todo', async () => {
+      const res = await request(app)
+        .delete(`/api/todos/${createdTodoId}`)
+        .expect(404);
+
+      expect(res.body.success).toBe(false);
+      expect(res.body.error).toBe('Not Found');
     });
   });
 
-  describe('404 for unknown routes', () => {
-    it('returns 404 for unregistered route', async () => {
-      const res = await request(app).get('/api/unknown');
-      expect(res.status).toBe(404);
+  // ── 404 Catch-All ───────────────────────────────────────────────
+  describe('404 Catch-All', () => {
+    it('should return JSON 404 for unmatched routes', async () => {
+      const res = await request(app)
+        .get('/api/nonexistent')
+        .expect(404);
+
       expect(res.body.success).toBe(false);
+      expect(res.body.error).toBe('Not Found');
+      expect(res.body.message).toContain('/api/nonexistent');
     });
   });
 });

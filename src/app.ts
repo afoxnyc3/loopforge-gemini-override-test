@@ -1,27 +1,28 @@
-import express, { Application } from 'express';
-import todoRoutes from './routes/todo.routes';
-import { errorHandler, notFoundHandler } from './middleware/errorHandler.middleware';
+import express, { Request, Response } from 'express';
+import { todoRoutes } from './routes/todo.routes';
+import { errorHandler } from './middleware/errorHandler.middleware';
 
-export function createApp(): Application {
-  const app = express();
+export const app = express();
 
-  // Body parsing
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
+// Body parsing
+app.use(express.json());
 
-  // Health check
-  app.get('/health', (_req, res) => {
-    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+// Routes
+app.use('/api/todos', todoRoutes);
+
+// Health check
+app.get('/health', (_req: Request, res: Response) => {
+  res.status(200).json({ status: 'ok' });
+});
+
+// 404 catch-all for unmatched routes — must come after all route registrations
+app.use((_req: Request, res: Response) => {
+  res.status(404).json({
+    success: false,
+    error: 'Not Found',
+    message: `Route ${_req.method} ${_req.originalUrl} not found`,
   });
+});
 
-  // API routes
-  app.use('/api/todos', todoRoutes);
-
-  // 404 handler (must come after all routes)
-  app.use(notFoundHandler);
-
-  // Global error handler (must be last, 4-arg signature)
-  app.use(errorHandler);
-
-  return app;
-}
+// Global error handler — must be last middleware
+app.use(errorHandler);

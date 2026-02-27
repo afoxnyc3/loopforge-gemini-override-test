@@ -1,73 +1,99 @@
 import { Request, Response, NextFunction } from 'express';
 import { TodoService } from '../services/todo.service';
-import { ApiResponse, Todo } from '../types/todo.types';
-import { CreateTodoInput, UpdateTodoInput } from '../schemas/todo.schema';
+import { CreateTodoInput, UpdateTodoInput } from '../types/todo.types';
 
 export class TodoController {
-  constructor(private readonly service: TodoService) {}
+  constructor(private todoService: TodoService) {}
 
-  getAll = async (
-    _req: Request,
-    res: Response<ApiResponse<Todo[]>>,
-    next: NextFunction
-  ): Promise<void> => {
+  getAll = async (_req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const todos = await this.service.getAllTodos();
-      res.status(200).json({ success: true, data: todos });
-    } catch (err) {
-      next(err);
+      const todos = await this.todoService.getAll();
+      res.status(200).json({
+        success: true,
+        data: todos,
+      });
+    } catch (error) {
+      next(error);
     }
   };
 
-  getById = async (
-    req: Request<{ id: string }>,
-    res: Response<ApiResponse<Todo>>,
-    next: NextFunction
-  ): Promise<void> => {
+  getById = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const todo = await this.service.getTodoById(req.params.id);
-      res.status(200).json({ success: true, data: todo });
-    } catch (err) {
-      next(err);
+      const { id } = req.params;
+      const todo = await this.todoService.getById(id);
+
+      if (!todo) {
+        res.status(404).json({
+          success: false,
+          error: 'Not Found',
+          message: `Todo with id ${id} not found`,
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        data: todo,
+      });
+    } catch (error) {
+      next(error);
     }
   };
 
-  create = async (
-    req: Request<Record<string, never>, ApiResponse<Todo>, CreateTodoInput>,
-    res: Response<ApiResponse<Todo>>,
-    next: NextFunction
-  ): Promise<void> => {
+  create = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const todo = await this.service.createTodo(req.body);
-      res.status(201).json({ success: true, data: todo, message: 'Todo created successfully' });
-    } catch (err) {
-      next(err);
+      const input: CreateTodoInput = req.body;
+      const todo = await this.todoService.create(input);
+      res.status(201).json({
+        success: true,
+        data: todo,
+      });
+    } catch (error) {
+      next(error);
     }
   };
 
-  update = async (
-    req: Request<{ id: string }, ApiResponse<Todo>, UpdateTodoInput>,
-    res: Response<ApiResponse<Todo>>,
-    next: NextFunction
-  ): Promise<void> => {
+  update = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const todo = await this.service.updateTodo(req.params.id, req.body);
-      res.status(200).json({ success: true, data: todo, message: 'Todo updated successfully' });
-    } catch (err) {
-      next(err);
+      const { id } = req.params;
+      const input: UpdateTodoInput = req.body;
+      const todo = await this.todoService.update(id, input);
+
+      if (!todo) {
+        res.status(404).json({
+          success: false,
+          error: 'Not Found',
+          message: `Todo with id ${id} not found`,
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        data: todo,
+      });
+    } catch (error) {
+      next(error);
     }
   };
 
-  delete = async (
-    req: Request<{ id: string }>,
-    res: Response<ApiResponse<never>>,
-    next: NextFunction
-  ): Promise<void> => {
+  delete = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      await this.service.deleteTodo(req.params.id);
-      res.status(200).json({ success: true, message: 'Todo deleted successfully' });
-    } catch (err) {
-      next(err);
+      const { id } = req.params;
+      const deleted = await this.todoService.delete(id);
+
+      if (!deleted) {
+        res.status(404).json({
+          success: false,
+          error: 'Not Found',
+          message: `Todo with id ${id} not found`,
+        });
+        return;
+      }
+
+      res.status(204).send();
+    } catch (error) {
+      next(error);
     }
   };
 }

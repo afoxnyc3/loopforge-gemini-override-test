@@ -1,55 +1,51 @@
 import { v4 as uuidv4 } from 'uuid';
+import { Todo, CreateTodoInput, UpdateTodoInput } from '../types/todo.types';
 import { ITodoRepository } from '../interfaces/ITodoRepository';
-import { Todo, CreateTodoDTO, UpdateTodoDTO } from '../types/todo.types';
 
 export class InMemoryTodoRepository implements ITodoRepository {
-  private readonly store: Map<string, Todo> = new Map();
+  private todos: Map<string, Todo> = new Map();
 
   async findAll(): Promise<Todo[]> {
-    return Array.from(this.store.values()).sort(
-      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
+    return Array.from(this.todos.values()).sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   }
 
   async findById(id: string): Promise<Todo | null> {
-    return this.store.get(id) ?? null;
+    return this.todos.get(id) ?? null;
   }
 
-  async create(dto: CreateTodoDTO): Promise<Todo> {
-    const now = new Date();
+  async create(input: CreateTodoInput): Promise<Todo> {
+    const now = new Date().toISOString();
     const todo: Todo = {
       id: uuidv4(),
-      title: dto.title,
-      description: dto.description,
-      status: dto.status ?? 'pending',
+      title: input.title,
+      description: input.description ?? null,
+      completed: false,
       createdAt: now,
       updatedAt: now,
     };
-    this.store.set(todo.id, todo);
+    this.todos.set(todo.id, todo);
     return todo;
   }
 
-  async update(id: string, dto: UpdateTodoDTO): Promise<Todo | null> {
-    const existing = this.store.get(id);
-    if (!existing) return null;
+  async update(id: string, input: UpdateTodoInput): Promise<Todo | null> {
+    const existing = this.todos.get(id);
+    if (!existing) {
+      return null;
+    }
 
     const updated: Todo = {
       ...existing,
-      ...(dto.title !== undefined && { title: dto.title }),
-      ...(dto.description !== undefined && { description: dto.description }),
-      ...(dto.status !== undefined && { status: dto.status }),
-      updatedAt: new Date(),
+      ...input,
+      updatedAt: new Date().toISOString(),
     };
-    this.store.set(id, updated);
+
+    this.todos.set(id, updated);
     return updated;
   }
 
   async delete(id: string): Promise<boolean> {
-    return this.store.delete(id);
-  }
-
-  /** Test helper: clear all data */
-  clear(): void {
-    this.store.clear();
+    return this.todos.delete(id);
   }
 }
